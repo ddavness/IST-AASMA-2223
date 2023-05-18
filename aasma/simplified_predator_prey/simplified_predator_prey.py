@@ -28,42 +28,26 @@ class SimplifiedPredatorPrey(gym.Env):
 
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(5, 5), n_agents=2, n_preys=1, prey_move_probs=(0.175, 0.175, 0.175, 0.175, 0.3),
-                 full_observable=False, penalty=-0.5, step_cost=-0.01, prey_capture_reward=5, max_steps=100, required_captors=2):
+    def __init__(self, grid_shape=(5, 5), n_agents=2, max_steps=100):
         self._grid_shape = grid_shape
         self.n_agents = n_agents
-        self.n_preys = n_preys
         self._max_steps = max_steps
         self._step_count = None
-        self._penalty = penalty
-        self._step_cost = step_cost
-        self._prey_capture_reward = prey_capture_reward
-        self._agent_view_mask = (5, 5)
-        self._required_captors = required_captors
 
-        self.action_space = MultiAgentActionSpace([spaces.Discrete(5) for _ in range(self.n_agents)])
+        self.action_space = MultiAgentActionSpace([spaces.Discrete(3) for _ in range(self.n_agents)])
         self.agent_pos = {_: None for _ in range(self.n_agents)}
-        self.prey_pos = {_: None for _ in range(self.n_preys)}
-        self._prey_alive = None
+        self.agent_body = {_: None for _ in range(self.n_agents)}
 
         self._base_grid = self.__create_grid()  # with no agents
         self._full_obs = self.__create_grid()
-        self._agent_dones = [False for _ in range(self.n_agents)]
-        self._prey_move_probs = prey_move_probs
+        # self._agent_dones = [False for _ in range(self.n_agents)]
         self.viewer = None
-        self.full_observable = full_observable
 
-        # agent pos (2), prey (25), step (1)
-        mask_size = np.prod(self._agent_view_mask)
-        self._obs_high = np.array([1., 1.] + [1.] * mask_size + [1.0], dtype=np.float32)
-        self._obs_low = np.array([0., 0.] + [0.] * mask_size + [0.0], dtype=np.float32)
-        if self.full_observable:
-            self._obs_high = np.tile(self._obs_high, self.n_agents)
-            self._obs_low = np.tile(self._obs_low, self.n_agents)
+        self._obs_high = np.tile(self._obs_high, self.n_agents)
+        self._obs_low = np.tile(self._obs_low, self.n_agents)
         self.observation_space = MultiAgentObservationSpace(
             [spaces.Box(self._obs_low, self._obs_high) for _ in range(self.n_agents)])
 
-        self._total_episode_reward = None
         self.seed()
 
     def simplified_features(self):
@@ -78,29 +62,18 @@ class SimplifiedPredatorPrey(gym.Env):
             col = col[0]
             agent_pos.append((col, row))
 
-        prey_pos = []
-        for prey_id in range(self.n_preys):
-            if self._prey_alive[prey_id]:
-                tag = f"P{prey_id + 1}"
-                row, col = np.where(current_grid == tag)
-                row = row[0]
-                col = col[0]
-                prey_pos.append((col, row))
-
-        features = np.array(agent_pos + prey_pos).reshape(-1)
+        features = np.array(agent_pos).reshape(-1)
 
         return features
 
     def reset(self):
-        self._total_episode_reward = [0 for _ in range(self.n_agents)]
         self.agent_pos = {}
         self.prey_pos = {}
 
         self.__init_full_obs()
         self._step_count = 0
         self._agent_dones = [False for _ in range(self.n_agents)]
-        self._prey_alive = [True for _ in range(self.n_preys)]
-
+        
         self.get_agent_obs()
         return [self.simplified_features() for _ in range(self.n_agents)]
 
@@ -112,25 +85,6 @@ class SimplifiedPredatorPrey(gym.Env):
             if not (self._agent_dones[agent_i]):
                 self.__update_agent_pos(agent_i, action)
 
-        for prey_i in range(self.n_preys):
-            if self._prey_alive[prey_i]:
-                predator_neighbour_count, n_i = self._neighbour_agents(self.prey_pos[prey_i])
-
-                if predator_neighbour_count >= self._required_captors:
-
-                    _reward = self._penalty if predator_neighbour_count < self._required_captors else self._prey_capture_reward
-
-                    self._prey_alive[prey_i] = (predator_neighbour_count < self._required_captors)
-
-                    for agent_i in range(self.n_agents):
-                        rewards[agent_i] += _reward
-
-                prey_move = None
-                if self._prey_alive[prey_i]:
-                    prey_move = random.randrange(5)
-
-                self.__update_prey_pos(prey_i, prey_move)
-
         if (self._step_count >= self._max_steps) or (True not in self._prey_alive):
             for i in range(self.n_agents):
                 self._agent_dones[i] = True
@@ -140,7 +94,7 @@ class SimplifiedPredatorPrey(gym.Env):
 
         self.get_agent_obs()
 
-        return [self.simplified_features() for _ in range(self.n_agents)], rewards, self._agent_dones, {'prey_alive': self._prey_alive}
+        return [self.simplified_features() for _ in range(self.n_agents)], rewards, self._agent_dones
 
     def get_action_meanings(self, agent_i=None):
         if agent_i is not None:
@@ -204,9 +158,9 @@ class SimplifiedPredatorPrey(gym.Env):
             _obs = [_obs for _ in range(self.n_agents)]
         return _obs
 
-    def __wall_exists(self, pos):
+    def __body_exists(self, pos):
         row, col = pos
-        return PRE_IDS['wall'] in self._base_grid[row, col]
+        return PRE_IDS['body'] in self._base_grid[row, col]
 
     def is_valid(self, pos):
         return (0 <= pos[0] < self._grid_shape[0]) and (0 <= pos[1] < self._grid_shape[1])
@@ -226,8 +180,6 @@ class SimplifiedPredatorPrey(gym.Env):
             next_pos = [curr_pos[0] - 1, curr_pos[1]]
         elif move == 3:  # right
             next_pos = [curr_pos[0], curr_pos[1] + 1]
-        elif move == 4:  # no-op
-            pass
         else:
             raise Exception('Action Not found!')
 
@@ -328,12 +280,6 @@ class SimplifiedPredatorPrey(gym.Env):
             write_cell_text(img, text=str(agent_i + 1), pos=self.agent_pos[agent_i], cell_size=CELL_SIZE,
                             fill='white', margin=0.4)
 
-        for prey_i in range(self.n_preys):
-            if self._prey_alive[prey_i]:
-                draw_circle(img, self.prey_pos[prey_i], cell_size=CELL_SIZE, fill=PREY_COLOR)
-                write_cell_text(img, text=str(prey_i + 1), pos=self.prey_pos[prey_i], cell_size=CELL_SIZE,
-                                fill='white', margin=0.4)
-
         img = np.asarray(img)
         if mode == 'rgb_array':
             return img
@@ -363,16 +309,14 @@ CELL_SIZE = 35
 WALL_COLOR = 'black'
 
 ACTION_MEANING = {
-    0: "DOWN",
+    0: "FORWARD",
     1: "LEFT",
-    2: "UP",
-    3: "RIGHT",
-    4: "NOOP",
+    2: "RIGHT"
 }
 
 PRE_IDS = {
-    'agent': 'A',
-    'prey': 'P',
-    'wall': 'W',
+    'head': 'H',
+    'food': 'F',
+    'body': 'B',
     'empty': '0'
 }
