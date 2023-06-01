@@ -38,7 +38,7 @@ class SnakeEnvironment(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __food_equilibrium_default(self, area):
-        return 3/2 * area^(2/3)
+        return 3/2 * area**(2/3)
 
     def __init__(self, grid_shape=(10, 10), n_agents=2, max_steps=None, food_equilibrium=None):
         if grid_shape[0] < 10 or grid_shape[1] < 10:
@@ -58,7 +58,7 @@ class SnakeEnvironment(gym.Env):
         self.alive = None
         self.body = {_: [] for _ in range(self.n_agents)}  # self.body= a list of all the bodys from agents than are a list on its own[(x1,y1),(x2,y2)]
         self.head_directions = [(1, 0), (0, -1), (-1, 0), (0, 1)] # Turning right will
-        self.direction = {_: 0 for _ in range(self.n_agents)} # (1, 0), (0, -1), (-1, 0), (0, 1)
+        self.direction_ptr = {_: 0 for _ in range(self.n_agents)} # (1, 0), (0, -1), (-1, 0), (0, 1)
         self.food = []
 
         self._obs_high = np.tile([1.0] * np.prod(grid_shape), self.n_agents)
@@ -86,7 +86,7 @@ class SnakeEnvironment(gym.Env):
 
     def reset(self):
         self.body = {_: [] for _ in range(self.n_agents)}
-        self.direction = {_: random.randint(0, 4) for _ in range(self.n_agents)}
+        self.direction_ptr = {_: 0 for _ in range(self.n_agents)}
         self.food = []
         self._grid = self.__create_grid()
 
@@ -100,7 +100,8 @@ class SnakeEnvironment(gym.Env):
     
     def __regenerate_food(self):
         area_total = self._grid_shape[0] * self._grid_shape[1]
-        grid_players = list(functools.reduce(lambda a, b: a + b, self.body))
+        print(self.body)
+        grid_players = list(functools.reduce(lambda a, b: self.body[a] + self.body[b], self.body))
         area_available = area_total - len(grid_players)
         food_target = self._food_equilibrium_f(area_available)
         if len(self.food) > food_target:
@@ -125,8 +126,9 @@ class SnakeEnvironment(gym.Env):
             x = math.floor(self.np_random.uniform(3, self._grid_shape[0] - 3))
             y = math.floor(self.np_random.uniform(3, self._grid_shape[1] - 3))
             head = (x, y)
-            dir = self.head_directions[math.floor(self.np_random.uniform(0, 4))]
-            self.direction[i] = dir
+            dirptr = math.floor(self.np_random.uniform(0, 4))
+            dir = self.head_directions[dirptr]
+            self.direction_ptr[i] = dirptr
             self.body[i].append(head)
             self.body[i].append((head[0] - dir[0], head[1] - dir[1]))
             self.body[i].append((head[0] - 2 * dir[0], head[1] - 2 * dir[1]))
@@ -187,21 +189,19 @@ class SnakeEnvironment(gym.Env):
 
     def __update_agent_pos(self, agent_i, move):
         curr_pos = copy.copy(self.body[agent_i])
-        next_pos = None
-        if move == 0:  # down
-            next_pos = [curr_pos[0] + 1, curr_pos[1]]
-        elif move == 1:  # left
-            next_pos = [curr_pos[0], curr_pos[1] - 1]
-        elif move == 2:  # up
-            next_pos = [curr_pos[0] - 1, curr_pos[1]]
-        elif move == 3:  # right
-            next_pos = [curr_pos[0], curr_pos[1] + 1]
-        else:
-            raise Exception('Action Not found!')
+        self.direction_ptr[agent_i] = (self.direction_ptr[agent_i] + move) % 4
+        dir = self.head_directions[self.direction_ptr[agent_i]]
+        # Next head position
+        next_pos = (self.body[agent_i][0][0] + dir[0], self.body[agent_i][0][1] + dir[1])
 
-        if next_pos is not None and self._is_cell_vacant(next_pos):
-            self.body[agent_i] = next_pos
-            self._grid[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
+        if next_pos is not None:
+            if self._grid[next_pos[0]][next_pos[1]] == PRE_IDS['food']:
+                # We grow by one unit
+                self.body[agent_i] = [next_pos] + self.body[agent_i]
+            else:
+                tail = self.body[agent_i][-1]
+                self._grid[tail[0]][tail[1]] = PRE_IDS['empty']
+                self.body[agent_i] = [next_pos] + self.body[agent_i][:-1]
             self.__update_agent_view(agent_i)
 
     def __update_agent_view(self, agent_i):
