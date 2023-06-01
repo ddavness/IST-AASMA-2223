@@ -51,7 +51,6 @@ class SnakeEnvironment(gym.Env):
         self._step_count = None
 
         self.action_space = MultiAgentActionSpace([spaces.Discrete(3) for _ in range(self.n_agents)])
-        self.agent_body = {_: None for _ in range(self.n_agents)}
 
         self._grid = self.__create_grid()
         self.viewer = None
@@ -59,7 +58,7 @@ class SnakeEnvironment(gym.Env):
         self.alive = None
         self.body = {_: [] for _ in range(self.n_agents)}  # self.body= a list of all the bodys from agents than are a list on its own[(x1,y1),(x2,y2)]
         self.head_directions = [(1, 0), (0, -1), (-1, 0), (0, 1)] # Turning right will
-        self.direction = {_: random.randint(0, 3) for _ in range(self.n_agents)} # (1, 0), (0, -1), (-1, 0), (0, 1)
+        self.direction = {_: 0 for _ in range(self.n_agents)} # (1, 0), (0, -1), (-1, 0), (0, 1)
         self.food = []
 
         self._obs_high = np.tile([1.0] * np.prod(grid_shape), self.n_agents)
@@ -68,26 +67,28 @@ class SnakeEnvironment(gym.Env):
             [spaces.Box(self._obs_low, self._obs_high) for _ in range(self.n_agents)])
 
         self.seed()
+        self.__draw_base_img()
 
     def simplified_features(self):
-        current_grid = np.array(self._grid)
+        #current_grid = np.array(self._grid).flatten()
+        #print(current_grid)
 
-        self.body = {_: [] for _ in range(self.n_agents)}
-        for agent_id in range(self.n_agents):
-            if self.alive[agent_id]:
-                tag = f"H{agent_id + 1}"
-                row, col = np.where(current_grid == tag)
-                row = row[0]
-                col = col[0]
-                self.body[agent_id].append((col, row))
+        # self.body = {_: [] for _ in range(self.n_agents)}
+        # for agent_id in range(self.n_agents):
+        #     if self.alive[agent_id]:
+        #         tag = f"H{agent_id + 1}"
+        #         
+        #         self.body[agent_id][0](col, row))
 
         features = np.array(self.body).reshape(-1)
 
         return features
 
     def reset(self):
-        self.body = {}
-        self.prey_pos = {}
+        self.body = {_: [] for _ in range(self.n_agents)}
+        self.direction = {_: random.randint(0, 4) for _ in range(self.n_agents)}
+        self.food = []
+        self._grid = self.__create_grid()
 
         self.__init_full_obs()
         self._step_count = 0
@@ -99,7 +100,7 @@ class SnakeEnvironment(gym.Env):
     
     def __regenerate_food(self):
         area_total = self._grid_shape[0] * self._grid_shape[1]
-        grid_players = list(functools.reduce(lambda a, b: a + b, self.agent_body))
+        grid_players = list(functools.reduce(lambda a, b: a + b, self.body))
         area_available = area_total - len(grid_players)
         food_target = self._food_equilibrium_f(area_available)
         if len(self.food) > food_target:
@@ -120,10 +121,16 @@ class SnakeEnvironment(gym.Env):
                     return
 
     def create_snakes(self):
-        for a in self.agent_body:
-            x = math.floor(self.np_random.uniform(3, self._grid_shape[0] + 1))
-            y = math.floor(self.np_random.uniform(3, self._grid_shape[1] + 1))
-            a.append((x, y))
+        for i in self.body:
+            x = math.floor(self.np_random.uniform(3, self._grid_shape[0] - 3))
+            y = math.floor(self.np_random.uniform(3, self._grid_shape[1] - 3))
+            head = (x, y)
+            dir = self.head_directions[math.floor(self.np_random.uniform(0, 4))]
+            self.direction[i] = dir
+            self.body[i].append(head)
+            self.body[i].append((head[0] - dir[0], head[1] - dir[1]))
+            self.body[i].append((head[0] - 2 * dir[0], head[1] - 2 * dir[1]))
+            self.__update_agent_view(i)
 
     def step(self, agents_action):
         self._step_count += 1
@@ -161,16 +168,7 @@ class SnakeEnvironment(gym.Env):
 
     def __init_full_obs(self):
         self._grid = self.__create_grid()
-
-        for agent_i in range(self.n_agents):
-            while True:
-                pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
-                       self.np_random.randint(0, self._grid_shape[1] - 1)]
-                if self._is_cell_vacant(pos):
-                    self.body[agent_i] = pos
-                    break
-            self.__update_agent_view(agent_i)
-
+        self.create_snakes()
         self.__draw_base_img()
 
     def get_agent_obs(self):
@@ -207,7 +205,10 @@ class SnakeEnvironment(gym.Env):
             self.__update_agent_view(agent_i)
 
     def __update_agent_view(self, agent_i):
-        self._grid[self.body[agent_i][0]][self.body[agent_i][1]] = PRE_IDS['head'] + str(agent_i + 1)
+        self._grid[self.body[agent_i][0][0]][self.body[agent_i][0][1]] = PRE_IDS['head'] + str(agent_i + 1)
+        for b in self.body[agent_i][1:]:
+            print(b)
+            self._grid[b[0]][b[1]] = PRE_IDS['body'] + str(agent_i + 1)
 
     def _dispose_agent(self, agent_i):
         self.alive[agent_i] = False
@@ -243,8 +244,14 @@ class SnakeEnvironment(gym.Env):
     def render(self, mode='human'):
         img = copy.copy(self._base_img)
         for agent_i in range(self.n_agents):
-            for cell in self.body[agent_i]:
-                fill_cell(img, cell, cell_size=CELL_SIZE, fill=self.getColor(agent_i, body=True), margin=0.1)
+            if not self.alive[agent_i]:
+                continue
+
+            print(agent_i)
+            print(self.body[agent_i])
+            fill_cell(img, self.body[agent_i][0], cell_size = CELL_SIZE, fill = self.getColor(agent_i, body=False))
+            for cell in self.body[agent_i][1:]:
+                fill_cell(img, cell, cell_size = CELL_SIZE, fill = self.getColor(agent_i, body=True))
 
         for agent_i in range(self.n_agents):
             draw_circle(img, self.body[agent_i][0], cell_size=CELL_SIZE, fill=self.getColor(agent_i))

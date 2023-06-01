@@ -19,11 +19,10 @@ def run_multi_agent(environment: SnakeEnvironment, agents: Sequence[Agent], n_ep
         steps = 0
         terminals = [False for _ in range(len(agents))]
         observations = environment.reset()
+
         environment.render()
         time.sleep(5)
         
-        environment.create_snakes()
-
         while not all(terminals):
             steps += 1
             # TODO - Main Loop (4-6 lines of code)
