@@ -5,11 +5,10 @@ from typing import Sequence
 
 from aasma import Agent
 from aasma.utils import compare_results
-from aasma.simplified_predator_prey import SimplifiedPredatorPrey
+from aasma.snake_environment import SnakeEnvironment
 
-from exercise_1_single_random_agent import RandomAgent
-from exercise_2_single_random_vs_greedy import GreedyAgent
-
+# from exercise_1_single_random_agent import RandomAgent
+# from exercise_2_single_random_vs_greedy import GreedyAgent
 
 def run_multi_agent(environment: Env, agents: Sequence[Agent], n_episodes: int) -> np.ndarray:
 
@@ -41,7 +40,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     # 1 - Setup the environment
-    environment = SimplifiedPredatorPrey(grid_shape=(7, 7), n_agents=4, n_preys=1, max_steps=100)
+    environment = SnakeEnvironment(grid_shape=(7, 7), n_agents=4, n_preys=1, max_steps=100)
 
     # 2 - Setup the teams
     teams = {

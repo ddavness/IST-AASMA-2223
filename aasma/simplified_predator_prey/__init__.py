@@ -1,1 +1,0 @@
-from aasma.simplified_predator_prey.simplified_predator_prey import SimplifiedPredatorPrey
