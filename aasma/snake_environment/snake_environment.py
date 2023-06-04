@@ -55,7 +55,7 @@ class SnakeEnvironment(gym.Env):
         self._grid = self.__create_grid()
         self.viewer = None
         
-        self.alive = None
+        self.alive = [True for _ in range(self.n_agents)]
         self.body = {_: [] for _ in range(self.n_agents)}  # self.body= a list of all the bodys from agents than are a list on its own[(x1,y1),(x2,y2)]
         self.head_directions = [(1, 0), (0, -1), (-1, 0), (0, 1)] # Turning right will
         self.direction_ptr = {_: 0 for _ in range(self.n_agents)} # (1, 0), (0, -1), (-1, 0), (0, 1)
@@ -115,11 +115,9 @@ class SnakeEnvironment(gym.Env):
         else:
             # Spawn a food block in any random free space
             while True:
-                x = math.floor(self.np_random.uniform(3, self._grid_shape[0] - 3 + 1))
-                y = math.floor(self.np_random.uniform(3, self._grid_shape[1] - 3 + 1))
-                if self._grid[x][y] != PRE_IDS['empty']:
-                    continue
-                else:
+                x = math.floor(self.np_random.uniform(0, self._grid_shape[0]))
+                y = math.floor(self.np_random.uniform(0, self._grid_shape[1]))
+                if self._grid[x][y] == PRE_IDS['empty']:
                     self.food += [(x, y)]
                     self._grid[x][y] = PRE_IDS['food']
                     return
@@ -135,10 +133,12 @@ class SnakeEnvironment(gym.Env):
                 self.direction_ptr[i] = dirptr
                 if self._grid[x][y] == PRE_IDS['empty'] \
                 and self._grid[x - dir[0]][y - dir[1]] == PRE_IDS['empty'] \
-                and self._grid[x - 2 * dir[0]][y - 2 * dir[1]] == PRE_IDS['empty']:
+                and self._grid[x - 2 * dir[0]][y - 2 * dir[1]] == PRE_IDS['empty'] \
+                and self._grid[x - 3 * dir[0]][y - 3 * dir[1]] == PRE_IDS['empty']:
                     self.body[i].append((x, y))
                     self.body[i].append((x - dir[0], y - dir[1]))
                     self.body[i].append((x - 2 * dir[0], y - 2 * dir[1]))
+                    self.body[i].append((x - 3 * dir[0], y - 3 * dir[1]))
                     self.__update_agent_view(i)
                     clear = True
 
@@ -156,6 +156,10 @@ class SnakeEnvironment(gym.Env):
         self.get_agent_obs()
 
         self._check_collisions()
+
+        for i in self.body:
+            self.__update_agent_view(i)
+
         self.__regenerate_food()
 
         return [self.simplified_features() for _ in range(self.n_agents)], self._agent_dones
@@ -190,7 +194,9 @@ class SnakeEnvironment(gym.Env):
         return self.is_valid(pos) and (self._grid[pos[0]][pos[1]] == PRE_IDS['empty'])
 
     def __update_agent_pos(self, agent_i, move):
-        curr_pos = copy.copy(self.body[agent_i])
+        if not self.alive[agent_i]:
+            return
+
         self.direction_ptr[agent_i] = (self.direction_ptr[agent_i] + move) % 4
         dir = self.head_directions[self.direction_ptr[agent_i]]
         # Next head position
@@ -198,14 +204,16 @@ class SnakeEnvironment(gym.Env):
 
         if next_pos is not None:
             if next_pos[0] < 0 or next_pos[0] >= self._grid_shape[0] or next_pos[1] < 0 or next_pos[1] >= self._grid_shape[1]:
-                self._schedule_kill(agent_i)
-                pass
+                self.alive[agent_i] = False
+                self._dispose_agent(agent_i)
+                return
             elif self._grid[next_pos[0]][next_pos[1]] == PRE_IDS['food']:
                 # We grow by one unit
                 self.body[agent_i] = [next_pos] + self.body[agent_i]
                 foodset = set(self.food)
                 foodset.remove(next_pos)
                 self.food = list(foodset)
+                self._grid[next_pos[0]][next_pos[1]] = PRE_IDS['empty']
             else:
                 tail = self.body[agent_i][-1]
                 self._grid[tail[0]][tail[1]] = PRE_IDS['empty']
@@ -213,16 +221,24 @@ class SnakeEnvironment(gym.Env):
             self.__update_agent_view(agent_i)
 
     def __update_agent_view(self, agent_i):
-        self._grid[self.body[agent_i][0][0]][self.body[agent_i][0][1]] = PRE_IDS['head'] + str(agent_i + 1)
-        for b in self.body[agent_i][1:]:
-            # print(b)
-            self._grid[b[0]][b[1]] = PRE_IDS['body'] + str(agent_i + 1)
+        if self.alive[agent_i]:
+            self._grid[self.body[agent_i][0][0]][self.body[agent_i][0][1]] = PRE_IDS['head'] + str(agent_i + 1)
+            for b in self.body[agent_i][1:]:
+                # print(b)
+                self._grid[b[0]][b[1]] = PRE_IDS['body'] + str(agent_i + 1)
 
     def _dispose_agent(self, agent_i):
-        for bodypart in range(len(self.body[agent_i])):
-            if bodypart % 2 == 1:
+        for bodypart in range(1, len(self.body[agent_i])):
+            if self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] == PRE_IDS['head'] + str(agent_i + 1) \
+            or self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] == PRE_IDS['body'] + str(agent_i + 1) \
+            or self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] == PRE_IDS['empty']:
+                self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] = PRE_IDS['empty']
+            if bodypart % 2 == 1 and self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] == PRE_IDS['empty']:
                 # print(self.body[agent_i][bodypart])
                 self.food += [self.body[agent_i][bodypart]]
+                self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] = PRE_IDS['food']
+
+                
         self.alive[agent_i] = False
 
     def _schedule_kill(self, i):
@@ -255,9 +271,11 @@ class SnakeEnvironment(gym.Env):
             if not self.alive[agent_i]:
                 continue
 
-            fill_cell(img, self.body[agent_i][0], cell_size = CELL_SIZE, fill = self.getColor(agent_i, body=False))
+            fill_cell(img, self.body[agent_i][0], cell_size = CELL_SIZE, fill = self.getColor(agent_i, body=False), margin=0.075)
+            t = 1
             for cell in self.body[agent_i][1:]:
-                fill_cell(img, cell, cell_size = CELL_SIZE, fill = self.getColor(agent_i, body=True))
+                fill_cell(img, cell, cell_size = CELL_SIZE, fill = self.getColor(agent_i, body=True), margin = 0.1 + (0.075 / (len(self.body[agent_i]) - 1)) * t)
+                t += 1
 
             # Draw head
             draw_circle(img, self.body[agent_i][0], cell_size=CELL_SIZE, fill=self.getColor(agent_i))
