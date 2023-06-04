@@ -96,7 +96,6 @@ class SnakeEnvironment(gym.Env):
         self._agent_dones = [False for _ in range(self.n_agents)]
         self.alive = [True for _ in range(self.n_agents)]
         
-        self.get_agent_obs()
         return [self.simplified_features() for _ in range(self.n_agents)]
     
     def __regenerate_food(self):
@@ -153,8 +152,6 @@ class SnakeEnvironment(gym.Env):
             for i in range(self.n_agents):
                 self._agent_dones[i] = True
 
-        self.get_agent_obs()
-
         self._check_collisions()
 
         for i in self.body:
@@ -179,9 +176,17 @@ class SnakeEnvironment(gym.Env):
         self.create_snakes()
         self.__draw_base_img()
 
-    def get_agent_obs(self):
+    def get_agent_obs(self, agent_i):
         # All agents have full observation
-        return np.array(self._grid).flatten().tolist()
+        return {
+            "self": agent_i,
+            "grid": np.array(self._grid).tolist(),
+            "grid_shape": self._grid_shape,
+            "agents": {i: self.body[i] if self.alive[i] else [] for i in self.body},
+            "directions": np.array(self.head_directions).tolist(),
+            "direction_ptr": {i: self.direction_ptr[i] if self.alive[i] else None for i in self.direction_ptr},
+            "food": np.array(self.food).tolist()
+        }
 
     def __body_exists(self, pos):
         row, col = pos

@@ -19,13 +19,9 @@ class Agent(ABC):
 
     Methods
     -------
-    see(observation)
-        Collects an observation
-
-    action(): int
+    action(observation): int
         Abstract method.
         Returns an action, represented by an integer
-        May take into account the observation (numpy.ndarray).
 
     References
     ----------
@@ -37,11 +33,7 @@ class Agent(ABC):
 
     def __init__(self, name: str):
         self.name = name
-        self.observation = None
-
-    def see(self, observation: np.ndarray):
-        self.observation = observation
 
     @abstractmethod
-    def action(self) -> int:
+    def action(self, observation) -> int:
         raise NotImplementedError()
