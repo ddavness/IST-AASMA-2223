@@ -51,7 +51,7 @@ class SnakeEnvironment(gym.Env):
         self._step_count = None
 
         self.action_space = MultiAgentActionSpace([spaces.Discrete(3) for _ in range(self.n_agents)])
-
+        
         self._grid = self.__create_grid()
         self.viewer = None
         
@@ -88,6 +88,7 @@ class SnakeEnvironment(gym.Env):
         self.body = {_: [] for _ in range(self.n_agents)}
         self.direction_ptr = {_: 0 for _ in range(self.n_agents)}
         self.food = []
+        self._toKill = []
         self._grid = self.__create_grid()
 
         self.__init_full_obs()
@@ -100,9 +101,11 @@ class SnakeEnvironment(gym.Env):
     
     def __regenerate_food(self):
         area_total = self._grid_shape[0] * self._grid_shape[1]
-        print(self.body)
-        grid_players = list(functools.reduce(lambda a, b: self.body[a] + self.body[b], self.body))
-        area_available = area_total - len(grid_players)
+        player_area = 0
+        for snake in self.body:
+            player_area += len(self.body[snake])
+
+        area_available = area_total - player_area
         food_target = self._food_equilibrium_f(area_available)
         if len(self.food) > food_target:
             return
@@ -123,16 +126,21 @@ class SnakeEnvironment(gym.Env):
 
     def create_snakes(self):
         for i in self.body:
-            x = math.floor(self.np_random.uniform(3, self._grid_shape[0] - 3))
-            y = math.floor(self.np_random.uniform(3, self._grid_shape[1] - 3))
-            head = (x, y)
-            dirptr = math.floor(self.np_random.uniform(0, 4))
-            dir = self.head_directions[dirptr]
-            self.direction_ptr[i] = dirptr
-            self.body[i].append(head)
-            self.body[i].append((head[0] - dir[0], head[1] - dir[1]))
-            self.body[i].append((head[0] - 2 * dir[0], head[1] - 2 * dir[1]))
-            self.__update_agent_view(i)
+            clear = False
+            while not clear:
+                x = math.floor(self.np_random.uniform(3, self._grid_shape[0] - 3))
+                y = math.floor(self.np_random.uniform(3, self._grid_shape[1] - 3))
+                dirptr = math.floor(self.np_random.uniform(0, 4))
+                dir = self.head_directions[dirptr]
+                self.direction_ptr[i] = dirptr
+                if self._grid[x][y] == PRE_IDS['empty'] \
+                and self._grid[x - dir[0]][y - dir[1]] == PRE_IDS['empty'] \
+                and self._grid[x - 2 * dir[0]][y - 2 * dir[1]] == PRE_IDS['empty']:
+                    self.body[i].append((x, y))
+                    self.body[i].append((x - dir[0], y - dir[1]))
+                    self.body[i].append((x - 2 * dir[0], y - 2 * dir[1]))
+                    self.__update_agent_view(i)
+                    clear = True
 
     def step(self, agents_action):
         self._step_count += 1
@@ -147,16 +155,10 @@ class SnakeEnvironment(gym.Env):
 
         self.get_agent_obs()
 
+        self._check_collisions()
         self.__regenerate_food()
 
         return [self.simplified_features() for _ in range(self.n_agents)], self._agent_dones
-
-    def get_action_meanings(self, agent_i=None):
-        if agent_i is not None:
-            assert agent_i <= self.n_agents
-            return [ACTION_MEANING[i] for i in range(self.action_space[agent_i].n)]
-        else:
-            return [[ACTION_MEANING[i] for i in range(ac.n)] for ac in self.action_space]
 
     def action_space_sample(self):
         return [agent_action_space.sample() for agent_action_space in self.action_space]
@@ -195,9 +197,15 @@ class SnakeEnvironment(gym.Env):
         next_pos = (self.body[agent_i][0][0] + dir[0], self.body[agent_i][0][1] + dir[1])
 
         if next_pos is not None:
-            if self._grid[next_pos[0]][next_pos[1]] == PRE_IDS['food']:
+            if next_pos[0] < 0 or next_pos[0] >= self._grid_shape[0] or next_pos[1] < 0 or next_pos[1] >= self._grid_shape[1]:
+                self._schedule_kill(agent_i)
+                pass
+            elif self._grid[next_pos[0]][next_pos[1]] == PRE_IDS['food']:
                 # We grow by one unit
                 self.body[agent_i] = [next_pos] + self.body[agent_i]
+                foodset = set(self.food)
+                foodset.remove(next_pos)
+                self.food = list(foodset)
             else:
                 tail = self.body[agent_i][-1]
                 self._grid[tail[0]][tail[1]] = PRE_IDS['empty']
@@ -207,38 +215,38 @@ class SnakeEnvironment(gym.Env):
     def __update_agent_view(self, agent_i):
         self._grid[self.body[agent_i][0][0]][self.body[agent_i][0][1]] = PRE_IDS['head'] + str(agent_i + 1)
         for b in self.body[agent_i][1:]:
-            print(b)
+            # print(b)
             self._grid[b[0]][b[1]] = PRE_IDS['body'] + str(agent_i + 1)
 
     def _dispose_agent(self, agent_i):
+        for bodypart in range(len(self.body[agent_i])):
+            if bodypart % 2 == 1:
+                # print(self.body[agent_i][bodypart])
+                self.food += [self.body[agent_i][bodypart]]
         self.alive[agent_i] = False
 
-    def _check_colisions(self):
-        toKill = []
-        def schedule_kill(i):
-            if not i in toKill:
-                toKill += [i]
+    def _schedule_kill(self, i):
+        self._toKill += [i]
+
+    def _check_collisions(self):
         for agent_i in range(self.n_agents):
             if self.alive[agent_i]:
                 if (self.body[agent_i][0] in self.body[agent_i][1:]):
                     # Snake collided with it's own body
-                    schedule_kill(agent_i)
-                if not self.is_valid(self.body[agent_i][0]):
-                    # Snake went out of bounds
-                    schedule_kill(agent_i)
+                    self._schedule_kill(agent_i)
                 for agent_x in range(self.n_agents):
                     if self.alive[agent_x]:
                         if agent_i == agent_x:
                             continue
                         if (self.body[agent_i][0] in self.body[agent_x]):
                             # Snake i collided with x
-                            schedule_kill(agent_i)
+                            self._schedule_kill(agent_i)
                         if (self.body[agent_x][0] in self.body[agent_i]):
                             # Snake x collided with i (both are possible)
-                            schedule_kill(agent_x)
-        for agent in toKill:
+                            self._schedule_kill(agent_x)
+        for agent in self._toKill:
             self.alive[agent] = False
-        for agent in toKill:
+        for agent in self._toKill:
             self._dispose_agent(agent)
 
     def render(self, mode='human'):
@@ -247,16 +255,17 @@ class SnakeEnvironment(gym.Env):
             if not self.alive[agent_i]:
                 continue
 
-            print(agent_i)
-            print(self.body[agent_i])
             fill_cell(img, self.body[agent_i][0], cell_size = CELL_SIZE, fill = self.getColor(agent_i, body=False))
             for cell in self.body[agent_i][1:]:
                 fill_cell(img, cell, cell_size = CELL_SIZE, fill = self.getColor(agent_i, body=True))
 
-        for agent_i in range(self.n_agents):
+            # Draw head
             draw_circle(img, self.body[agent_i][0], cell_size=CELL_SIZE, fill=self.getColor(agent_i))
             write_cell_text(img, text=str(agent_i + 1), pos=self.body[agent_i][0], cell_size=CELL_SIZE,
                             fill='white', margin=0.4)
+        
+        for point in self.food:
+            draw_circle(img, point, cell_size=CELL_SIZE, fill=FOOD_COLOR)
 
         img = np.asarray(img)
         if mode == 'rgb_array':
