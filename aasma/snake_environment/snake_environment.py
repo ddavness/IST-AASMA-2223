@@ -57,7 +57,7 @@ class SnakeEnvironment(gym.Env):
         
         self.alive = [True for _ in range(self.n_agents)]
         self.body = {_: [] for _ in range(self.n_agents)}  # self.body= a list of all the bodys from agents than are a list on its own[(x1,y1),(x2,y2)]
-        self.head_directions = [(1, 0), (0, -1), (-1, 0), (0, 1)] # Turning right will
+        self.head_directions = [(1, 0), (0, 1), (-1, 0), (0, -1)] # Turning right will
         self.direction_ptr = {_: 0 for _ in range(self.n_agents)} # (1, 0), (0, -1), (-1, 0), (0, 1)
         self.food = []
 
@@ -132,12 +132,10 @@ class SnakeEnvironment(gym.Env):
                 self.direction_ptr[i] = dirptr
                 if self._grid[x][y] == PRE_IDS['empty'] \
                 and self._grid[x - dir[0]][y - dir[1]] == PRE_IDS['empty'] \
-                and self._grid[x - 2 * dir[0]][y - 2 * dir[1]] == PRE_IDS['empty'] \
-                and self._grid[x - 3 * dir[0]][y - 3 * dir[1]] == PRE_IDS['empty']:
+                and self._grid[x - 2 * dir[0]][y - 2 * dir[1]] == PRE_IDS['empty']:
                     self.body[i].append((x, y))
                     self.body[i].append((x - dir[0], y - dir[1]))
                     self.body[i].append((x - 2 * dir[0], y - 2 * dir[1]))
-                    self.body[i].append((x - 3 * dir[0], y - 3 * dir[1]))
                     self.__update_agent_view(i)
                     clear = True
 
@@ -183,7 +181,7 @@ class SnakeEnvironment(gym.Env):
             "grid": np.array(self._grid).tolist(),
             "grid_shape": self._grid_shape,
             "agents": {i: self.body[i] if self.alive[i] else [] for i in self.body},
-            "directions": np.array(self.head_directions).tolist(),
+            "directions": self.head_directions.copy(),
             "direction_ptr": {i: self.direction_ptr[i] if self.alive[i] else None for i in self.direction_ptr},
             "food": np.array(self.food).tolist()
         }
@@ -315,7 +313,7 @@ class SnakeEnvironment(gym.Env):
             color = color + (200,)
         return color 
 
-AGENT_COLOR = ["red","blue","green","yellow","purple","orange","pink","brown"] #8 agent colors
+AGENT_COLOR = ["red","blue","green","cyan","purple","orange","pink","brown"] #8 agent colors
 FOOD_COLOR = "black"
 
 CELL_SIZE = 35

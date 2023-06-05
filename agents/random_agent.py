@@ -1,6 +1,6 @@
-# A set of agents for environment debugging purposes only.
+# A set of agents that move kind of randomly
 from aasma.agent import Agent
-from aasma.snake_environment.snake_environment import Action, PRE_IDS
+from aasma.snake_environment.snake_environment import Action
 from gym.utils import seeding
 
 import agents.utils as utils
@@ -27,21 +27,13 @@ class LessDumbRandomAgent(Agent):
         # Where are we?
         
         # Will anything kill us? (compute the space excluding actions that will guaranteedly kill us)
-        posValid = []
-        for action in Action:
-            aux = utils.sum(observation["agents"][observation["self"]][0], observation["directions"][utils.fixDirection(action.value, observation, observation["self"])])
-            if utils.wall(aux, observation["grid_shape"]):
-                continue
-            obs = observation["grid"][aux[0]][aux[1]]
-            if obs != PRE_IDS['empty'] and obs != PRE_IDS['food']:
-                continue
-            else:
-                posValid += [action.value]
-
-        if len(posValid) == 0:
+        direction_ptr = observation["direction_ptr"][observation["self"]]
+        # print(direction_ptr)
+        actionValid = utils.get_valid_actions(direction_ptr, observation, observation["agents"][observation["self"]][0])
+        if len(actionValid) == 0:
             # We're likely going to die anyway
             return Action.FORWARD.value
-        elif len(posValid) == 1:
-            return posValid[0]
+        elif len(actionValid) == 1:
+            return actionValid[0]
         else:
-            return posValid[math.floor(self._rng.uniform(0, len(posValid)))]
+            return actionValid[math.floor(self._rng.uniform(0, len(actionValid)))]
