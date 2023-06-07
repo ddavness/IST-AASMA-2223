@@ -2,6 +2,8 @@
 from aasma.agent import Agent
 from aasma.snake_environment.snake_environment import Action, PRE_IDS
 
+from agents.random_agent import LessDumbRandomAgent
+
 import agents.utils as utils
 import math
 import heapq
@@ -12,6 +14,7 @@ class AStarAgent(Agent):
     """
     def __init__(self, seed=None):
         super(AStarAgent, self).__init__("A* Searching Agent")
+        self.fallback = LessDumbRandomAgent(seed)
         self.step = 0
         self.goal = None
         self.reevaluateEvery = None
@@ -23,14 +26,17 @@ class AStarAgent(Agent):
         pass
 
     def setGoal(self, observation):
+        self.goal = None
         candidate_goals = utils.food(0.5, observation) #, observation["self"])
+        # Sort by distance
         closest_distance = math.inf
         for goal in candidate_goals:
             path = self.astar(observation, [goal])
-            distance = len(path)
-            if distance < closest_distance:
-                closest_distance = distance
-                self.goal = goal
+            if path is not None:
+                distance = len(path)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    self.goal = goal
         
     def astar(self, observation, _goal):
         goal = _goal
@@ -73,7 +79,10 @@ class AStarAgent(Agent):
         while current != start:
             path.append(current)
             print(path)
-            current = came_from[current]
+            if came_from.get(current) is not None:
+                current = came_from[current]
+            else:
+                return None # No possible path!
         path.reverse()
         return path
 
@@ -87,7 +96,17 @@ class AStarAgent(Agent):
             self.setGoal(observation)
             self.step = 0
         self.step += 1
-        next_pos = self.astar(observation, [self.goal])[0]
+        path = self.astar(observation, [self.goal])
+        next_pos = None
+        if path is None:
+            # Reevaluate goal
+            self.setGoal(observation)
+            self.step = 1
+            path = self.astar(observation, [self.goal])
+            # And even then, if there's still no way around, fallback
+            if path is None:
+                return self.fallback.action(observation)
+        next_pos = path[0]
         return utils.get_action(observation["direction_ptr"][observation["self"]], observation, head, next_pos)
 
 
