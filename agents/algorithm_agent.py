@@ -75,10 +75,10 @@ class AStarAgent(Agent):
 
         path = []
         current = goal[0]
-        print(came_from)
+        # print(came_from)
         while current != start:
             path.append(current)
-            print(path)
+            # print(path)
             if came_from.get(current) is not None:
                 current = came_from[current]
             else:
@@ -91,7 +91,7 @@ class AStarAgent(Agent):
         head = observation["agents"][observation["self"]][0]
         if(self.reevaluateEvery == None):
             self.setup(observation)
-        print(self.goal)
+        # print(self.goal)
         if(self.reevaluateEvery == self.step or self.goal == None or len(self.goal) == 0 or self.goal == head):
             self.setGoal(observation)
             self.step = 0

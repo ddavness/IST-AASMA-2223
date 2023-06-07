@@ -38,7 +38,7 @@ class SnakeEnvironment(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __food_equilibrium_default(self, area):
-        return 3/2 * area**(2/3)
+        return 0.5 * area**(0.5)
 
     def __init__(self, grid_shape=(10, 10), n_agents=2, max_steps=None, food_equilibrium=None):
         if grid_shape[0] < 10 or grid_shape[1] < 10:
@@ -220,6 +220,12 @@ class SnakeEnvironment(gym.Env):
             else:
                 tail = self.body[agent_i][-1]
                 self._grid[tail[0]][tail[1]] = PRE_IDS['empty']
+                try:
+                    foodset = set(self.food)
+                    foodset.remove(tail)
+                    self.food = list(foodset)
+                except:
+                    pass
                 self.body[agent_i] = [next_pos] + self.body[agent_i][:-1]
             self.__update_agent_view(agent_i)
 
@@ -231,6 +237,7 @@ class SnakeEnvironment(gym.Env):
                 self._grid[b[0]][b[1]] = PRE_IDS['body'] + str(agent_i + 1)
 
     def _dispose_agent(self, agent_i):
+        print(f"Disposing agent {agent_i}")
         for bodypart in range(1, len(self.body[agent_i])):
             if self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] == PRE_IDS['head'] + str(agent_i + 1) \
             or self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] == PRE_IDS['body'] + str(agent_i + 1) \
@@ -239,6 +246,7 @@ class SnakeEnvironment(gym.Env):
             if bodypart % 2 == 1 and self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] == PRE_IDS['empty']:
                 # print(self.body[agent_i][bodypart])
                 self.food += [self.body[agent_i][bodypart]]
+                self.food = list(set(self.food))
                 self._grid[self.body[agent_i][bodypart][0]][self.body[agent_i][bodypart][1]] = PRE_IDS['food']
 
                 
@@ -267,6 +275,7 @@ class SnakeEnvironment(gym.Env):
             self.alive[agent] = False
         for agent in self._toKill:
             self._dispose_agent(agent)
+        self._toKill = []
 
     def render(self, mode='human'):
         img = copy.copy(self._base_img)
