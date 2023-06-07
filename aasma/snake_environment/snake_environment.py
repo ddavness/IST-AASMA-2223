@@ -322,7 +322,16 @@ class SnakeEnvironment(gym.Env):
             color = color + (200,)
         return color 
 
-AGENT_COLOR = ["red","blue","green","cyan","purple","orange","pink","brown"] #8 agent colors
+AGENT_COLOR = [
+    "#ff0000",
+    "#ffbf00",
+    "#80ff00",
+    "#00ff40",
+    "#00ffff",
+    "#0040ff",
+    "#8000ff",
+    "#ff00bf"
+]
 FOOD_COLOR = "black"
 
 CELL_SIZE = 35
