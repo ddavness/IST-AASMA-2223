@@ -1,4 +1,6 @@
 # Agents that follow an algorithm/strategy to maximize their length
+from abc import abstractmethod
+
 from aasma.agent import Agent
 from aasma.snake_environment.snake_environment import Action, PRE_IDS
 
@@ -13,30 +15,19 @@ class AStarAgent(Agent):
     Heuristic: The nearest food point (path-wise)
     """
     def __init__(self, seed=None):
-        super(AStarAgent, self).__init__("A* Searching Agent")
+        super(AStarAgent, self)
         self.fallback = LessDumbRandomAgent(seed)
         self.step = 0
         self.goal = None
         self.reevaluateEvery = None
 
+    @abstractmethod
     def setup(self, observation):
-        # "Configure" the agent according to the environment
-        grid_shape = observation["grid_shape"]
-        self.reevaluateEvery = 0.5 * (grid_shape[0] * grid_shape[1]) ** 0.5
-        pass
+        raise NotImplementedError()
 
+    @abstractmethod
     def setGoal(self, observation):
-        self.goal = None
-        candidate_goals = utils.food(0.5, observation) #, observation["self"])
-        # Sort by distance
-        closest_distance = math.inf
-        for goal in candidate_goals:
-            path = self.astar(observation, [goal])
-            if path is not None:
-                distance = len(path)
-                if distance < closest_distance:
-                    closest_distance = distance
-                    self.goal = goal
+        raise NotImplementedError()
         
     def astar(self, observation, _goal):
         goal = _goal
@@ -98,17 +89,40 @@ class AStarAgent(Agent):
         self.step += 1
         path = self.astar(observation, [self.goal])
         next_pos = None
-        if path is None:
+        if path is None or len(path) == 0:
             # Reevaluate goal
             self.setGoal(observation)
             self.step = 1
             path = self.astar(observation, [self.goal])
             # And even then, if there's still no way around, fallback
-            if path is None:
+            if path is None or len(path) == 0:
                 return self.fallback.action(observation)
         next_pos = path[0]
         return utils.get_action(observation["direction_ptr"][observation["self"]], observation, head, next_pos)
 
+class AStarNearest(AStarAgent):
+    def __init__(self, seed=None):
+        super(AStarAgent, self).__init__("A* Searching Agent - Nearest Food")
+        super(AStarNearest, self).__init__(seed)
+
+    def setup(self, observation):
+        # "Configure" the agent according to the environment
+        grid_shape = observation["grid_shape"]
+        self.reevaluateEvery = 0.5 * (grid_shape[0] * grid_shape[1]) ** 0.5
+        pass
+
+    def setGoal(self, observation):
+        self.goal = None
+        candidate_goals = utils.food(0.5, observation) #, observation["self"])
+        # Sort by distance
+        closest_distance = math.inf
+        for goal in candidate_goals:
+            path = self.astar(observation, [goal])
+            if path is not None:
+                distance = len(path)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    self.goal = goal
 
 class AStarCautious(Agent):
     """
@@ -116,29 +130,24 @@ class AStarCautious(Agent):
     (rationale: so that it doesn't face competition from other snakes)
     """
     def __init__(self, seed=None):
-        super(AStarCautious, self).__init__("A* Cautious Agent")
-        self.step = 0
-        self._goal = None
-        self.reevaluateEvery = None
-        self.weights = None
-        self._setup = False
+        super(AStarAgent, self).__init__("A* Searching Agent - Cautious")
+        super(AStarNearest, self).__init__(seed)
 
     def setup(self, observation):
         # "Configure" the agent according to the environment
-        num_agents = len(observation["agents"])
         grid_shape = observation["grid_shape"]
         self.reevaluateEvery = 0.5 * (grid_shape[0] * grid_shape[1]) ** 0.5
         pass
-        
-    def goal(self, observation):
-        pass
 
-    def action(self, observation) -> int:
-        if not self._setup:
-            self.setup(observation)
-            self._setup = True
-        
-        if self._goal is None:
-            self.goal(observation)
-        
-        pass
+    def setGoal(self, observation):
+        self.goal = None
+        candidate_goals = utils.food(0.5, observation) #, observation["self"])
+        # Sort by distance
+        closest_distance = math.inf
+        for goal in candidate_goals:
+            path = self.astar(observation, [goal])
+            if path is not None:
+                distance = len(path)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    self.goal = goal
