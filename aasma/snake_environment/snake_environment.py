@@ -24,6 +24,12 @@ class Action(Enum):
     FORWARD = 0
     RIGHT = 1
 
+class DeathReason(Enum):
+    MAP_EDGE = 0
+    COLLIDE_SELF = 1
+    COLLIDE_OTHER_BODY = 2
+    COLLIDE_OTHER_HEAD = 3
+
 class SnakeEnvironment(gym.Env):
 
     """
@@ -56,6 +62,7 @@ class SnakeEnvironment(gym.Env):
         self.viewer = None
         
         self.alive = [True for _ in range(self.n_agents)]
+        self.dead_because = [None for _ in range(self.n_agents)]
         self.body = {_: [] for _ in range(self.n_agents)}  # self.body= a list of all the bodys from agents than are a list on its own[(x1,y1),(x2,y2)]
         self.head_directions = [(1, 0), (0, 1), (-1, 0), (0, -1)] # Turning right will
         self.direction_ptr = {_: 0 for _ in range(self.n_agents)} # (1, 0), (0, -1), (-1, 0), (0, 1)
@@ -93,7 +100,7 @@ class SnakeEnvironment(gym.Env):
 
         self.__init_full_obs()
         self._step_count = 0
-        self._agent_dones = [False for _ in range(self.n_agents)]
+        self.finished = False
         self.alive = [True for _ in range(self.n_agents)]
         
         return [self.simplified_features() for _ in range(self.n_agents)]
@@ -139,16 +146,34 @@ class SnakeEnvironment(gym.Env):
                     self.__update_agent_view(i)
                     clear = True
 
+    def stats(self):
+        stats = {
+            "finished": self.finished,
+            "agents": {},
+            "food": len(self.food),
+            "step": self._step_count
+        }
+
+        for i in range(self.n_agents):
+            stats["agents"][i] = {
+                "alive": self.alive[i],
+                "dead_because": self.dead_because[i],
+                "length": len(self.body[i])
+            }
+
+        return stats
     def step(self, agents_action):
+        if self.finished:
+            return self.stats
         self._step_count += 1
 
         for agent_i, action in enumerate(agents_action):
-            if not (self._agent_dones[agent_i]):
+            if self.alive[agent_i]:
                 self.__update_agent_pos(agent_i, action)
 
         if (self._step_count >= self._max_steps) or (sum(self.alive)<2):
             for i in range(self.n_agents):
-                self._agent_dones[i] = True
+                self.finished = True
 
         self._check_collisions()
 
@@ -157,7 +182,7 @@ class SnakeEnvironment(gym.Env):
 
         self.__regenerate_food()
 
-        return [self.simplified_features() for _ in range(self.n_agents)], self._agent_dones
+        return self.stats()
 
     def action_space_sample(self):
         return [agent_action_space.sample() for agent_action_space in self.action_space]
@@ -208,6 +233,7 @@ class SnakeEnvironment(gym.Env):
         if next_pos is not None:
             if next_pos[0] < 0 or next_pos[0] >= self._grid_shape[0] or next_pos[1] < 0 or next_pos[1] >= self._grid_shape[1]:
                 self.alive[agent_i] = False
+                self.dead_because[agent_i] = DeathReason.MAP_EDGE
                 self._dispose_agent(agent_i)
                 return
             elif self._grid[next_pos[0]][next_pos[1]] == PRE_IDS['food']:
@@ -260,6 +286,7 @@ class SnakeEnvironment(gym.Env):
             if self.alive[agent_i]:
                 if (self.body[agent_i][0] in self.body[agent_i][1:]):
                     # Snake collided with it's own body
+                    self.dead_because[agent_i] = DeathReason.COLLIDE_SELF
                     self._schedule_kill(agent_i)
                 for agent_x in range(self.n_agents):
                     if self.alive[agent_x]:
@@ -267,10 +294,11 @@ class SnakeEnvironment(gym.Env):
                             continue
                         if (self.body[agent_i][0] in self.body[agent_x]):
                             # Snake i collided with x
+                            if self.body[agent_i][0] == self.body[agent_x][0]:
+                                self.dead_because[agent_i] = DeathReason.COLLIDE_OTHER_HEAD
+                            else:
+                                self.dead_because[agent_i] = DeathReason.COLLIDE_OTHER_BODY
                             self._schedule_kill(agent_i)
-                        if (self.body[agent_x][0] in self.body[agent_i]):
-                            # Snake x collided with i (both are possible)
-                            self._schedule_kill(agent_x)
         for agent in self._toKill:
             self.alive[agent] = False
         for agent in self._toKill:
