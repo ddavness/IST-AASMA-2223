@@ -12,16 +12,22 @@ from agents.debug_agent import ForwardAgent
 from agents.random_agent import RandomAgent, LessDumbRandomAgent
 from agents.algorithm_agent import AStarNearest
 
+from data.export import data_export
+
 from pprint import pprint
 
 def run_multi_agent(environment: SnakeEnvironment, agents: Sequence[Agent], n_episodes: int, render: bool) -> np.ndarray:
+    episodes = {}
     for episode in range(n_episodes):
+        data = []
         results = environment.reset()
+        data.append(results)
 
         while not results["finished"]:
             if render:
                 environment.render()
             results = environment.step([agents[i].action(environment.get_agent_obs(i)) if results["agents"][i]["alive"] else 0 for i in range(len(agents))])
+            data.append(results)
             #print(results)
             if render:
                 pass#time.sleep(.05)
@@ -30,8 +36,9 @@ def run_multi_agent(environment: SnakeEnvironment, agents: Sequence[Agent], n_ep
 
         if render:
             environment.close()
+        episodes[episode + 1] = data
 
-    return results
+    return episodes
 
 
 if __name__ == '__main__':
@@ -39,11 +46,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--episodes", type=int, default=100)
+    parser.add_argument('-e', '--export', nargs='?', const='./export.json')
     parser.add_argument("-r", "--render", action="store_true")
     opt = parser.parse_args()
 
     # 1 - Setup the environment
-    environment = SnakeEnvironment(grid_shape=(3*20, 4*20), n_agents=8, max_steps=None)
+    environment = SnakeEnvironment(grid_shape=(3*10, 4*10), n_agents=8, max_steps=None)
     environment.seed()
 
     # 2 - Setup the teams
@@ -67,3 +75,5 @@ if __name__ == '__main__':
         results[team] = result
 
     # 4 - Compare results
+    if opt.export:
+        data_export(results, opt.export)

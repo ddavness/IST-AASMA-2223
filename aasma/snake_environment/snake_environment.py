@@ -22,11 +22,11 @@ class Action(Enum):
     FORWARD = 0
     RIGHT = 1
 
-class DeathReason(Enum):
-    MAP_EDGE = 0
-    COLLIDE_SELF = 1
-    COLLIDE_OTHER_BODY = 2
-    COLLIDE_OTHER_HEAD = 3
+class DeathReason(str, Enum):
+    MAP_EDGE = "MAP_EDGE"
+    COLLIDE_SELF = "COLLIDE_SELF"
+    COLLIDE_OTHER_BODY = "COLLIDE_OTHER_BODY"
+    COLLIDE_OTHER_HEAD = "COLLIDE_OTHER_HEAD"
 
 class SnakeEnvironment(gym.Env):
 
