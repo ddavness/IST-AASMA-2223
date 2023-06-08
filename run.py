@@ -10,7 +10,7 @@ from aasma.snake_environment import SnakeEnvironment
 
 from agents.debug_agent import ForwardAgent
 from agents.random_agent import RandomAgent, LessDumbRandomAgent
-from agents.algorithm_agent import AStarNearest
+from agents.algorithm_agent import AStarNearest, AStarCautious
 
 from data.export import data_export
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     # 1 - Setup the environment
-    environment = SnakeEnvironment(grid_shape=(3*10, 4*10), n_agents=8, max_steps=None)
+    environment = SnakeEnvironment(grid_shape=(3*15, 4*15), n_agents=8, max_steps=None)
     environment.seed()
 
     # 2 - Setup the teams
@@ -61,10 +61,10 @@ if __name__ == '__main__':
             AStarNearest(),
             AStarNearest(),
             AStarNearest(),
-            LessDumbRandomAgent(),
-            LessDumbRandomAgent(),
-            LessDumbRandomAgent(),
-            LessDumbRandomAgent()
+            AStarCautious(),
+            AStarCautious(),
+            AStarCautious(),
+            AStarCautious()
         ],
     }
 
@@ -73,6 +73,9 @@ if __name__ == '__main__':
     for team, agents in teams.items():
         result = run_multi_agent(environment, agents, opt.episodes, opt.render)
         results[team] = result
+        results[team]["members"] = {}
+        for t in range(len(agents)):
+            results[team]["members"][t] = agents[t].name
 
     # 4 - Compare results
     if opt.export:
