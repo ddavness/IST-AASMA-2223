@@ -143,7 +143,7 @@ class SnakeEnvironment(gym.Env):
             fill_cell(img, self._body[agent_i][0], cell_size = CELL_SIZE, fill = self._agent_color(agent_i, body=False), margin=0.075)
             t = 1
             for cell in self._body[agent_i][1:]:
-                fill_cell(img, cell, cell_size = CELL_SIZE, fill = self._agent_color(agent_i, body=True), margin = 0.1 + (0.1 / (len(self._body[agent_i]) - 1)) * t)
+                fill_cell(img, cell, cell_size = CELL_SIZE, fill = self._agent_color(agent_i, body=True), margin = 0.15 + ((0.1 / (1 + 2**(3-(len(self._body[agent_i]))))) / (len(self._body[agent_i]) - 1)) * t)
                 t += 1
 
             # Draw head
@@ -160,7 +160,7 @@ class SnakeEnvironment(gym.Env):
         elif mode == 'human':
             from gym.envs.classic_control import rendering
             if self._viewer is None:
-                self._viewer = rendering.SimpleImageViewer()
+                self._viewer = rendering.SimpleImageViewer(maxwidth=1000)
             self._viewer.imshow(img)
             return self._viewer.isopen
 

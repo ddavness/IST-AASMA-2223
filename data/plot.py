@@ -50,24 +50,60 @@ def parse_data(data, f):
             # Nothing here
             return dump
         for k in yields:
-            print(k, len(yields[k]))
             dump[k][x] = yields[k]
 
 data = data_import("./sample2.json")
-print(parse_data(data["Debug"], snake_lengths))
+parsed_data = parse_data(data["Debug"], snake_lengths)
 
-np.random.seed(1)
-x = np.linspace(0, 8, 16)
-y1 = 3 + 4*x/8 + np.random.uniform(0.0, 0.5, len(x))
-y2 = 1 + 2*x/8 + np.random.uniform(0.0, 0.5, len(x))
-
-# plot
+# Plot
 fig, ax = plt.subplots()
+colors_lookup = ["#0060ff", "#ff6000"]
+colors_lookup_idx = 0
 
-ax.fill_between(x, y1, y2, alpha=.5, linewidth=0)
-ax.plot(x, (y1 + y2)/2, linewidth=2)
+xmax = []
 
-ax.set(xlim=(0, 8), xticks=np.arange(1, 8),
-       ylim=(0, 8), yticks=np.arange(1, 8))
+for agent_type in parsed_data:
+    agent_data = parsed_data[agent_type]
+    min = []
+    q1 = []
+    q2 = []
+    q3 = []
+    max = []
+    num = []
+
+    length = 0
+    for x in agent_data:
+        arr = agent_data[x]
+        if len(arr) == 0:
+            break
+        length += 1
+        # From this array, compute it's max, min, Q1 (25%), Q2 (median) and Q3 (75%)
+        n = len(arr)
+        num.append(n)
+        quartiles = np.quantile(arr, [0.25,0.5,0.75]).tolist()
+        min.append(arr[0])
+        max.append(arr[-1])
+        q1.append(quartiles[0])
+        q2.append(quartiles[1])
+        q3.append(quartiles[2])
+
+    x = np.linspace(start=0, stop=length, num=length, endpoint=False)
+
+    ax.plot(x, q2, linewidth=2, color=colors_lookup[colors_lookup_idx])
+    ax.fill_between(x, q1, q3, alpha=0.4, linewidth=0, color=colors_lookup[colors_lookup_idx])
+    ax.plot(x, min, linewidth=.8, color=colors_lookup[colors_lookup_idx])
+    ax.plot(x, max, linewidth=.8, color=colors_lookup[colors_lookup_idx])
+
+    xmax.append(np.max(max))
+
+    colors_lookup_idx += 1
+
+topval = ((np.max(xmax) // 20) + 2) * 20
+
+ax.set(xlim=(0, 4800), xticks=np.arange(100, 4801, 100),
+        ylim=(0, topval), yticks=np.arange(10, topval + 1, 10))
+
+ax.set_xlabel("Steps")
+ax.set_ylabel("Snake Length")
 
 plt.show()
