@@ -1,6 +1,6 @@
 from agents.debug_agent import ForwardAgent
 from agents.random_agent import RandomAgent, LessDumbRandomAgent
-from agents.algorithm_agent import AStarNearest, AStarCautious
+from agents.algorithm_agent import AStarNearest, AStarCautious, AStarNearestTailCheck, AStarCautiousTailCheck
 
 scenarios = {
     "randoms": {
@@ -52,7 +52,7 @@ scenarios = {
         "grid": (25, 25)
     },
     "astar3": {
-        "output": "astar4.json",
+        "output": "astar3.json",
         "agents": [
             AStarNearest(),
             AStarNearest(),
@@ -90,5 +90,47 @@ scenarios = {
             AStarCautious()
         ],
         "grid": (60, 60)
+    },
+    "tcheck_nearest": {
+        "output": "tcheck_nearest.json",
+        "agents": [
+            AStarNearest(),
+            AStarNearest(),
+            AStarNearest(),
+            AStarNearest(),
+            AStarNearestTailCheck(),
+            AStarNearestTailCheck(),
+            AStarNearestTailCheck(),
+            AStarNearestTailCheck()
+        ],
+        "grid": (50, 50)
+    },
+    "tcheck_cautious": {
+        "output": "tcheck_cautious.json",
+        "agents": [
+            AStarCautious(),
+            AStarCautious(),
+            AStarCautious(),
+            AStarCautious(),
+            AStarCautiousTailCheck(),
+            AStarCautiousTailCheck(),
+            AStarCautiousTailCheck(),
+            AStarCautiousTailCheck()
+        ],
+        "grid": (50, 50)
+    },
+    "tcheck_comparison": {
+        "output": "tcheck_comparison.json",
+        "agents": [
+            AStarNearestTailCheck(),
+            AStarNearestTailCheck(),
+            AStarNearestTailCheck(),
+            AStarNearestTailCheck(),
+            AStarCautiousTailCheck(),
+            AStarCautiousTailCheck(),
+            AStarCautiousTailCheck(),
+            AStarCautiousTailCheck()
+        ],
+        "grid": (50, 50)
     }
 }
