@@ -281,7 +281,6 @@ class AStarNearestTailCheck(AStarAgent):
         observation["grid"][tail[0]][tail[1]] = PRE_IDS['empty']
         tailPath = self.astar(observation, [observation["agents"][observation["self"]][-1]], pos = path[0], direction_ptr = utils.get_direction_ptr(observation, head, path[0]))
         if tailPath == None:
-            print("vou me incoralar")
             if self.goal == (0, 0):
                 # Options have been exhausted
                 return self.fallback.action(observation)
@@ -393,7 +392,6 @@ class AStarCautiousTailCheck(AStarAgent):
         observation["grid"][tail[0]][tail[1]] = PRE_IDS['empty']
         tailPath = self.astar(observation, [observation["agents"][observation["self"]][-1]], pos = path[0], direction_ptr = utils.get_direction_ptr(observation, head, path[0]))
         if tailPath == None:
-            print("vou me incoralar")
             if self.goal == (0,0):
                 # Options have been exhausted
                 return self.fallback.action(observation)
