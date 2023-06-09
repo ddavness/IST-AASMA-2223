@@ -51,6 +51,18 @@ scenarios = {
         ],
         "grid": (25, 25)
     },
+    "astar3": {
+        "output": "astar4.json",
+        "agents": [
+            AStarNearest(),
+            AStarNearest(),
+            AStarNearest(),
+            AStarCautious(),
+            AStarCautious(),
+            AStarCautious()
+        ],
+        "grid": (40, 40)
+    },
     "astar4": {
         "output": "astar4.json",
         "agents": [
