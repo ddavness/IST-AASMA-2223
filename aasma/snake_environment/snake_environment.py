@@ -167,7 +167,7 @@ class SnakeEnvironment(gym.Env):
         return [seed]
     
     def setup_colors(self, agent_names):
-        self._agent_hues = [mkhash(n) % 7200 for n in agent_names]
+        self._agent_hues = [mkhash(n) for n in agent_names]
 
     def close(self):
         if self._viewer is not None:
@@ -331,7 +331,7 @@ class SnakeEnvironment(gym.Env):
 
     def _agent_color(self, agent_i):
         hue = self._agent_hues[agent_i]
-        return tuple(round(i * 255) for i in colorsys.hsv_to_rgb(hue/7200, 0.5 + 0.06 * agent_i, 1 - 0.04 * agent_i))
+        return tuple(round(i * 255) for i in colorsys.hsv_to_rgb(hue, 0.5 + 0.06 * agent_i, 1 - 0.04 * agent_i))
 
 FOOD_COLOR = "black"
 
