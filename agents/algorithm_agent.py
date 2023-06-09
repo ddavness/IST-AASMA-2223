@@ -207,5 +207,10 @@ class AStarCautious(AStarAgent):
                 agents_goals.append(self.predictGoal(observation, agent_pos))
         if self.goal in agents_goals:
             self.setGoal(observation, agents_goals)
-            self.step = 0
+            self.step = 1
+            path = self.astar(observation, [self.goal])
+            # And even then, if there's still no way around, fallback
+            if path is None or len(path) == 0:
+                return self.fallback.action(observation)
+            next_pos = path[0]
         return utils.get_action(observation["direction_ptr"][observation["self"]], observation, head, next_pos)
