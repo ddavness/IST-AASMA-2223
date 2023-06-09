@@ -51,7 +51,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     # 1 - Setup the environment
-    environment = SnakeEnvironment(grid_shape=(3*15, 4*15), n_agents=8, max_steps=None)
+    environment = SnakeEnvironment(grid_shape=(3*15, 4*15), n_agents=6, max_steps=None)
     environment.seed()
 
     # 2 - Setup the teams
@@ -60,8 +60,6 @@ if __name__ == '__main__':
             AStarNearest(),
             AStarNearest(),
             AStarNearest(),
-            AStarNearest(),
-            AStarCautious(),
             AStarCautious(),
             AStarCautious(),
             AStarCautious()
@@ -71,8 +69,10 @@ if __name__ == '__main__':
     # 3 - Evaluate teams
     results = {}
     for team, agents in teams.items():
+        results[team] = {}
         result = run_multi_agent(environment, agents, opt.episodes, opt.render)
-        results[team] = result
+        results[team]["data"] = result
+        results[team]["max_steps"] = environment._max_steps
         results[team]["members"] = {}
         for t in range(len(agents)):
             results[team]["members"][t] = agents[t].name

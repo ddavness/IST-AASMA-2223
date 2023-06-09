@@ -29,9 +29,12 @@ class AStarAgent(Agent):
     def setGoal(self, observation):
         raise NotImplementedError()
         
-    def astar(self, observation, _goal):
+    def astar(self, observation, _goal, pos = None, direction_ptr = None):
         goal = _goal
-        start = utils.getCurrentPos(observation)
+        if pos != None:
+            start = pos
+        else:
+            start = utils.getCurrentPos(observation)
 
         frontier = []
         heapq.heappush(frontier, (0, start))
@@ -40,7 +43,10 @@ class AStarAgent(Agent):
         direction_ptrs ={}
         came_from[start] = None
         cost_so_far[start] = 0
-        direction_ptrs[start] = observation["direction_ptr"][observation["self"]]
+        if(direction_ptr != None):
+            direction_ptrs[start] = direction_ptr
+        else:
+            direction_ptrs[start] = observation["direction_ptr"][observation["self"]]
 
         while frontier:
             _, current = heapq.heappop(frontier)
@@ -77,28 +83,9 @@ class AStarAgent(Agent):
         path.reverse()
         return path
 
-
+    @abstractmethod
     def action(self, observation) -> int:
-        head = observation["agents"][observation["self"]][0]
-        if(self.reevaluateEvery == None):
-            self.setup(observation)
-        # print(self.goal)
-        if(self.reevaluateEvery == self.step or self.goal == None or len(self.goal) == 0 or self.goal == head):
-            self.setGoal(observation)
-            self.step = 0
-        self.step += 1
-        path = self.astar(observation, [self.goal])
-        next_pos = None
-        if path is None or len(path) == 0:
-            # Reevaluate goal
-            self.setGoal(observation)
-            self.step = 1
-            path = self.astar(observation, [self.goal])
-            # And even then, if there's still no way around, fallback
-            if path is None or len(path) == 0:
-                return self.fallback.action(observation)
-        next_pos = path[0]
-        return utils.get_action(observation["direction_ptr"][observation["self"]], observation, head, next_pos)
+        raise NotImplementedError()
 
 class AStarNearest(AStarAgent):
     def __init__(self, seed=None):
@@ -123,15 +110,37 @@ class AStarNearest(AStarAgent):
                 if distance < closest_distance:
                     closest_distance = distance
                     self.goal = goal
+    
+    def action(self, observation) -> int:
+        head = observation["agents"][observation["self"]][0]
+        if(self.reevaluateEvery == None):
+            self.setup(observation)
+        # print(self.goal)
+        if(self.reevaluateEvery == self.step or self.goal == None or len(self.goal) == 0 or self.goal == head):
+            self.setGoal(observation)
+            self.step = 0
+        self.step += 1
+        path = self.astar(observation, [self.goal])
+        next_pos = None
+        if path is None or len(path) == 0:
+            # Reevaluate goal
+            self.setGoal(observation)
+            self.step = 1
+            path = self.astar(observation, [self.goal])
+            # And even then, if there's still no way around, fallback
+            if path is None or len(path) == 0:
+                return self.fallback.action(observation)
+        next_pos = path[0]
+        return utils.get_action(observation["direction_ptr"][observation["self"]], observation, head, next_pos)
 
-class AStarCautious(Agent):
+class AStarCautious(AStarAgent):
     """
     Heuristic: weigh between nearest food point (path-wise) and longer brute distance from the other agents
     (rationale: so that it doesn't face competition from other snakes)
     """
     def __init__(self, seed=None):
         super(AStarAgent, self).__init__("A* Searching Agent - Cautious")
-        super(AStarNearest, self).__init__(seed)
+        super(AStarCautious, self).__init__(seed)
 
     def setup(self, observation):
         # "Configure" the agent according to the environment
@@ -139,9 +148,13 @@ class AStarCautious(Agent):
         self.reevaluateEvery = 0.5 * (grid_shape[0] * grid_shape[1]) ** 0.5
         pass
 
-    def setGoal(self, observation):
+    def setGoal(self, observation, exceptions = None):
         self.goal = None
         candidate_goals = utils.food(0.5, observation) #, observation["self"])
+        if exceptions != None:
+            for exception in exceptions:
+                if exception in candidate_goals:
+                    candidate_goals.remove(exception)
         # Sort by distance
         closest_distance = math.inf
         for goal in candidate_goals:
@@ -151,3 +164,48 @@ class AStarCautious(Agent):
                 if distance < closest_distance:
                     closest_distance = distance
                     self.goal = goal
+    
+    def predictGoal(self, observation, agent_pos):
+        agent_goal = None
+        candidate_goals = utils.food(0.5, observation, pos=agent_pos) #, observation["self"])
+        # Sort by distance
+        closest_distance = math.inf
+        for goal in candidate_goals:
+            path = self.astar(observation, [goal])
+            if path is not None:
+                distance = len(path)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    agent_goal = goal
+        return agent_goal
+
+    def action(self, observation) -> int:
+        head = observation["agents"][observation["self"]][0]
+        if(self.reevaluateEvery == None):
+            self.setup(observation)
+        # print(self.goal)
+        if(self.reevaluateEvery == self.step or self.goal == None or len(self.goal) == 0 or self.goal == head):
+            self.setGoal(observation)
+            self.step = 0
+        self.step += 1
+        path = self.astar(observation, [self.goal])
+        next_pos = None
+        if path is None or len(path) == 0:
+            # Reevaluate goal
+            self.setGoal(observation)
+            self.step = 1
+            path = self.astar(observation, [self.goal])
+            # And even then, if there's still no way around, fallback
+            if path is None or len(path) == 0:
+                return self.fallback.action(observation)
+        next_pos = path[0]
+
+        agents_pos = utils.get_agents_nearby(observation, next_pos, head)
+        agents_goals = []
+        if(agents_pos != []):
+            for agent_pos in agents_pos:
+                agents_goals.append(self.predictGoal(observation, agent_pos))
+        if self.goal in agents_goals:
+            self.setGoal(observation, agents_goals)
+            self.step = 0
+        return utils.get_action(observation["direction_ptr"][observation["self"]], observation, head, next_pos)
