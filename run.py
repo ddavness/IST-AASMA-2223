@@ -70,7 +70,6 @@ if __name__ == '__main__':
         # Spawn a worker pool
         with multiprocessing.Pool(processes=opt.processes) as procs:
             argmap = [(environment, s["agents"], opt.episodes//opt.processes, opt.render, n+1, opt.processes) for n in range(opt.processes)]
-            print(argmap)
             results[opt.scenario]["data"] = {}
             for result in procs.starmap(run_multi_agent, argmap):
                 results[opt.scenario]["data"].update(result)

@@ -287,7 +287,7 @@ class SnakeEnvironment(gym.Env):
                 self._grid[b[0]][b[1]] = PRE_IDS['body'] + str(agent_i + 1)
 
     def _dispose_agent(self, agent_i):
-        print(f"Disposing agent {agent_i + 1}")
+        #print(f"Disposing agent {agent_i + 1}")
         for bodypart in range(1, len(self._body[agent_i])):
             if self._grid[self._body[agent_i][bodypart][0]][self._body[agent_i][bodypart][1]] == PRE_IDS['head'] + str(agent_i + 1) \
             or self._grid[self._body[agent_i][bodypart][0]][self._body[agent_i][bodypart][1]] == PRE_IDS['body'] + str(agent_i + 1) \
