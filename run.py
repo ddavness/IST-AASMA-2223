@@ -8,11 +8,9 @@ from aasma import Agent
 from aasma.utils import compare_results
 from aasma.snake_environment import SnakeEnvironment
 
-from agents.debug_agent import ForwardAgent
-from agents.random_agent import RandomAgent, LessDumbRandomAgent
-from agents.algorithm_agent import AStarNearest, AStarCautious
-
 from data.export import data_export
+
+from config import scenarios
 
 from pprint import pprint
 
@@ -30,7 +28,7 @@ def run_multi_agent(environment: SnakeEnvironment, agents: Sequence[Agent], n_ep
             data.append(results)
             #print(results)
             if render:
-                pass#time.sleep(.05)
+                time.sleep(.1)
 
         pprint(results)
 
@@ -45,38 +43,31 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--episodes", type=int, default=100)
-    parser.add_argument('-e', '--export', nargs='?', const='./export.json')
-    parser.add_argument("-r", "--render", action="store_true")
+    parser.add_argument("--scenario", type=str, required=True, help="The scenario to run")
+    parser.add_argument("-n", "--episodes", type=int, default=1, help="How many episodes to run. Defaults to 1")
+    parser.add_argument("-e", "--export", nargs='?', const="", help="Export the results to a file. Optionally indicate where you want to save the results (otherwise the default in the configuration will be used)")
+    parser.add_argument("-r", "--render", action="store_true", help="Render the episodes on the screen")
     opt = parser.parse_args()
 
-    # 1 - Setup the environment
-    environment = SnakeEnvironment(grid_shape=(3*15, 4*15), n_agents=6, max_steps=None)
+    s = scenarios.get(opt.scenario)
+    if s is None:
+        raise ValueError("I don't see this scenario configured!")
+    
+    environment = SnakeEnvironment(grid_shape=s["grid"], n_agents=len(s["agents"]), max_steps=None)
     environment.seed()
 
-    # 2 - Setup the teams
-    teams = {
-        "Debug": [
-            AStarNearest(),
-            AStarNearest(),
-            AStarNearest(),
-            AStarCautious(),
-            AStarCautious(),
-            AStarCautious()
-        ],
-    }
-
-    # 3 - Evaluate teams
     results = {}
-    for team, agents in teams.items():
-        results[team] = {}
-        result = run_multi_agent(environment, agents, opt.episodes, opt.render)
-        results[team]["data"] = result
-        results[team]["max_steps"] = environment._max_steps
-        results[team]["members"] = {}
-        for t in range(len(agents)):
-            results[team]["members"][t] = agents[t].name
+    results[opt.scenario] = {}
+    result = run_multi_agent(environment, s["agents"], opt.episodes, opt.render)
+    results[opt.scenario]["data"] = result
+    results[opt.scenario]["max_steps"] = environment._max_steps
+    results[opt.scenario]["members"] = {}
+    for t in range(len(s["agents"])):
+        results[opt.scenario]["members"][t] = s["agents"][t].name
 
     # 4 - Compare results
-    if opt.export:
-        data_export(results, opt.export)
+    if opt.export is not None:
+        where = opt.export
+        if where == "":
+            where = s["output"]
+        data_export(results, where)
