@@ -110,3 +110,6 @@ def get_agents_nearby(observation, pos, head):
             if observation["agents"][agentId][0] == neighbour:
                 agents_pos.append(neighbour)
     return agents_pos
+
+def get_agent_size(observation, agentid):
+    return len(observation["agents"][agentid])
