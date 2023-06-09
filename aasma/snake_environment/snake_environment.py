@@ -168,7 +168,6 @@ class SnakeEnvironment(gym.Env):
     
     def setup_colors(self, agent_names):
         self._agent_hues = [mkhash(n) % 7200 for n in agent_names]
-        print(self._agent_hues)
 
     def close(self):
         if self._viewer is not None:
