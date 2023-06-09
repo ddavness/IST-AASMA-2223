@@ -5,4 +5,4 @@ def mkhash(string: str):
     barray = string.encode("utf-8")
     m.update(barray)
     digest = m.digest()
-    return int.from_bytes(digest)
+    return int.from_bytes(digest, byteorder="big")
