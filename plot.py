@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
+import colorsys
 import numpy as np
 import sys
 
-from export import data_import
+from data.utils import mkhash
+from data.export import data_import
 
 plt.style.use('_mpl-gallery')
 
@@ -69,8 +71,6 @@ if __name__ == "__main__":
     # Plot
     fig, ax, = plt.subplots()
     ay = ax.twinx()
-    colors_lookup = ["#0060ff", "#ff6000"]
-    colors_lookup_idx = 0
 
     xmax = []
 
@@ -101,16 +101,17 @@ if __name__ == "__main__":
 
         x = np.linspace(start=0, stop=length, num=length, endpoint=False)
 
-        ax.plot(x, q2, linewidth=2, color=colors_lookup[colors_lookup_idx], label=agent_type)
-        ax.fill_between(x, q1, q3, alpha=0.4, linewidth=0, color=colors_lookup[colors_lookup_idx])
-        ax.plot(x, min, linewidth=.8, color=colors_lookup[colors_lookup_idx])
-        ax.plot(x, max, linewidth=.8, color=colors_lookup[colors_lookup_idx])
+        clr = tuple(round(i * 255) for i in colorsys.hsv_to_rgb((mkhash(agent_type) % 3600) / 3600, 1, 1))
+        clrhex = "#{:02x}{:02x}{:02x}".format(*clr)
 
-        ay.plot(x, num, linewidth=3, color=colors_lookup[colors_lookup_idx])
+        ax.plot(x, q2, linewidth=2, color=clrhex, label=agent_type)
+        ax.fill_between(x, q1, q3, alpha=0.4, linewidth=0, color=clrhex)
+        ax.plot(x, min, linewidth=.8, color=clrhex)
+        ax.plot(x, max, linewidth=.8, color=clrhex)
+
+        ay.plot(x, num, linewidth=3, color=clrhex)
 
         xmax.append(np.max(max))
-
-        colors_lookup_idx += 1
 
     topval = ((np.max(xmax) // 20) + 2) * 20
 

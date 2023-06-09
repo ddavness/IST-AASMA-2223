@@ -1,18 +1,15 @@
 import copy
 import logging
-import random
 import copy
 
 import math
 import numpy as np
-import functools
-
 logger = logging.getLogger(__name__)
 
-from PIL import ImageColor
+import colorsys
 import gym
-from gym import spaces
 from gym.utils import seeding
+from data.utils import mkhash
 
 from ma_gym.envs.utils.draw import draw_grid, fill_cell, draw_circle, write_cell_text
 
@@ -52,6 +49,7 @@ class SnakeEnvironment(gym.Env):
         self._step_count = None
         self._finished = False
         
+        self._agent_hues = []
         self._grid = self._create_grid()
         self._viewer = None
         
@@ -140,16 +138,16 @@ class SnakeEnvironment(gym.Env):
             if not self._alive[agent_i]:
                 continue
 
-            fill_cell(img, self._body[agent_i][0], cell_size = CELL_SIZE, fill = self._agent_color(agent_i, body=False), margin=0.075)
+            fill_cell(img, self._body[agent_i][0], cell_size = CELL_SIZE, fill = self._agent_color(agent_i), margin=0.075)
             t = 1
             for cell in self._body[agent_i][1:]:
-                fill_cell(img, cell, cell_size = CELL_SIZE, fill = self._agent_color(agent_i, body=True), margin = 0.15 + ((0.1 / (1 + 2**(3-(len(self._body[agent_i]))))) / (len(self._body[agent_i]) - 1)) * t)
+                fill_cell(img, cell, cell_size = CELL_SIZE, fill = self._agent_color(agent_i), margin = 0.15 + ((0.1 / (1 + 2**(3-(len(self._body[agent_i]))))) / (len(self._body[agent_i]) - 1)) * t)
                 t += 1
 
             # Draw head
             draw_circle(img, self._body[agent_i][0], cell_size=CELL_SIZE, fill=self._agent_color(agent_i))
             write_cell_text(img, text=str(agent_i + 1), pos=self._body[agent_i][0], cell_size=CELL_SIZE,
-                            fill='white', margin=0.4)
+                            fill='white', margin=0.5)
         
         for point in self._food:
             draw_circle(img, point, cell_size=CELL_SIZE, fill=FOOD_COLOR)
@@ -167,6 +165,10 @@ class SnakeEnvironment(gym.Env):
     def seed(self, n=None):
         self.np_random, seed = seeding.np_random(n)
         return [seed]
+    
+    def setup_colors(self, agent_names):
+        self._agent_hues = [mkhash(n) % 7200 for n in agent_names]
+        print(self._agent_hues)
 
     def close(self):
         if self._viewer is not None:
@@ -286,7 +288,7 @@ class SnakeEnvironment(gym.Env):
                 self._grid[b[0]][b[1]] = PRE_IDS['body'] + str(agent_i + 1)
 
     def _dispose_agent(self, agent_i):
-        print(f"Disposing agent {agent_i}")
+        print(f"Disposing agent {agent_i + 1}")
         for bodypart in range(1, len(self._body[agent_i])):
             if self._grid[self._body[agent_i][bodypart][0]][self._body[agent_i][bodypart][1]] == PRE_IDS['head'] + str(agent_i + 1) \
             or self._grid[self._body[agent_i][bodypart][0]][self._body[agent_i][bodypart][1]] == PRE_IDS['body'] + str(agent_i + 1) \
@@ -328,22 +330,10 @@ class SnakeEnvironment(gym.Env):
             self._dispose_agent(agent)
         self._toKill = []
 
-    def _agent_color(self, agent_i, body=False):
-        color = ImageColor.getcolor(AGENT_COLOR[agent_i], mode='HSV')
-        if(body):
-            color = color + (200,)
-        return color 
+    def _agent_color(self, agent_i):
+        hue = self._agent_hues[agent_i]
+        return tuple(round(i * 255) for i in colorsys.hsv_to_rgb(hue/7200, 0.5 + 0.06 * agent_i, 1 - 0.04 * agent_i))
 
-AGENT_COLOR = [
-    "#ff0000",
-    "#ffbf00",
-    "#80ff00",
-    "#00ff40",
-    "#00ffff",
-    "#0040ff",
-    "#8000ff",
-    "#ff00bf"
-]
 FOOD_COLOR = "black"
 
 CELL_SIZE = 35

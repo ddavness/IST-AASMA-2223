@@ -16,6 +16,7 @@ from pprint import pprint
 
 def run_multi_agent(environment: SnakeEnvironment, agents: Sequence[Agent], n_episodes: int, render: bool) -> np.ndarray:
     episodes = {}
+    environment.setup_colors(agent.name for agent in agents)
     for episode in range(n_episodes):
         data = []
         results = environment.reset()
@@ -28,7 +29,7 @@ def run_multi_agent(environment: SnakeEnvironment, agents: Sequence[Agent], n_ep
             data.append(results)
             #print(results)
             if render:
-                time.sleep(.1)
+                pass#time.sleep(.1)
 
         pprint(results)
 
