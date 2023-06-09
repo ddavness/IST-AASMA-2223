@@ -1,3 +1,4 @@
+import time
 import multiprocessing
 import argparse
 import numpy as np
@@ -29,7 +30,7 @@ def run_multi_agent(environment: SnakeEnvironment, agents: Sequence[Agent], n_ep
             data.append(results)
             #print(results)
             if render:
-                pass#time.sleep(.1)
+                time.sleep(.08)
 
         print(f"* Episode {(episode * episode_every) + episode_index} done")
 

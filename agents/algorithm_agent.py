@@ -222,7 +222,7 @@ class AStarCautious(AStarAgent):
 
 class AStarNearestTailCheck(AStarAgent):
     def __init__(self, seed=None):
-        super(AStarAgent, self).__init__("A* Searching Agent - Nearest Food w/ Tail Check")
+        super(AStarAgent, self).__init__("A* Searching Agent - Nearest Food - Tail Check")
         super(AStarNearestTailCheck, self).__init__(seed)
         self.exceptions = [] #goals that will make the snake trap herself
         self.backup = (0,0)
@@ -306,7 +306,7 @@ class AStarCautiousTailCheck(AStarAgent):
     (rationale: so that it doesn't face competition from other snakes)
     """
     def __init__(self, seed=None):
-        super(AStarAgent, self).__init__("A* Searching Agent - Cautious w/ Tail Check")
+        super(AStarAgent, self).__init__("A* Searching Agent - Cautious - Tail Check")
         super(AStarCautiousTailCheck, self).__init__(seed)
         self.exceptions = [] #goals that will make the snake trap herself
         self.backup = (0,0)
