@@ -1,8 +1,12 @@
 name: snake
 dependencies:
-  - python=3.12
+  - python=3.11
+  - pip<=23.0.1
+  - setuptools<=66
+  - wheel<=0.38.4
   - numpy
   - pygame
   - matplotlib
   - scipy
-  - gymnasium
+  - pip:
+    - ma-gym
