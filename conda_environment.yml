@@ -1,0 +1,8 @@
+name: snake
+dependencies:
+  - python=3.12
+  - numpy
+  - pygame
+  - matplotlib
+  - scipy
+  - gymnasium
