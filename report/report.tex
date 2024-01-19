@@ -1,0 +1,180 @@
+%%
+%% sample document for AAMAS'19 conference
+%%
+%% modified from sample-sigconf.tex
+%%
+%% see ACM instructions acmguide.pdf
+%%
+%% AAMAS-specific questions? F.A.Oliehoek@tudelft.nl
+%%
+
+\documentclass[sigconf]{aamas}  % do not change this line!
+
+%% your usepackages here, for example:
+\usepackage{booktabs}
+
+%% do not change the following lines
+\usepackage{flushend}
+%\setcopyright{ifaamas}  % do not change this line!
+\acmDOI{}  % do not change this line!
+\acmISBN{}  % do not change this line!
+\acmConference[AASMA'23]{AASMA Project, IST}{2023}{Lisbon, Portugal}  % do not change this line!
+\acmYear{2023}  % do not change this line!
+\copyrightyear{2023}  % do not change this line!
+\acmPrice{}  % do not change this line!
+
+%% the rest of your preamble here
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\title{Competitive Multiplayer Snake Game}  % put your title here!
+%\titlenote{Produces the permission block, and copyright information}
+
+% AAMAS: as appropriate, uncomment one subtitle line; check the CFP
+%\subtitle{Extended Abstract}
+%\subtitle{Blue Sky Ideas Track}
+%\subtitle{JAAMAS Track}
+%\subtitle{Demonstration}
+%\subtitle{Doctoral Consortium}
+
+% AAMAS: submissions are anonymous for most tracks
+\subtitle{Group 38 - Project Report - Autonomous Agents and Multi-Agent Systems}
+
+%% example of author block for camera ready version of accepted papers: don't use for anonymous submissions
+%
+\author{Simão Paiva}
+\affiliation{%
+  \institution{Instituto Superior Técnico}
+  \city{Oeiras}
+  \country{Portugal}
+}
+\email{simao.paiva@tecnico.ulisboa.pt}
+
+\author{David Duque}
+\affiliation{
+  \institution{Instituto Superior Técnico}
+  \city{Oeiras}
+  \country{Portugal} 
+}
+\email{david.f.s.duque@tecnico.ulisboa.pt}
+%
+%\author{Lars Th{\o}rv{\"a}ld}
+%\authornote{This author is the
+%  one who did all the really hard work.}
+%\affiliation{%
+%  \institution{The Th{\o}rv{\"a}ld Group}
+%  \streetaddress{1 Th{\o}rv{\"a}ld Circle}
+%  \city{Hekla} 
+%  \country{Iceland}}
+%\email{larst@affiliation.org}
+%
+%\author{Valerie B\'eranger}
+%\affiliation{%
+%  \institution{Inria Paris-Rocquencourt}
+%  \city{Rocquencourt}
+%  \country{France}
+%}
+%\author{Aparna Patel} 
+%\affiliation{%
+% \institution{Rajiv Gandhi University}
+% \streetaddress{Rono-Hills}
+% \city{Doimukh} 
+% \state{Arunachal Pradesh}
+% \country{India}}
+%\author{Huifen Chan}
+%\affiliation{%
+%  \institution{Tsinghua University}
+%  \streetaddress{30 Shuangqing Rd}
+%  \city{Haidian Qu} 
+%  \state{Beijing Shi}
+%  \country{China}
+%}
+%
+%\author{Charles Palmer}
+%\affiliation{%
+%  \institution{Palmer Research Laboratories}
+%  \streetaddress{8600 Datapoint Drive}
+%  \city{San Antonio}
+%  \state{Texas} 
+%  \postcode{78229}}
+%\email{cpalmer@prl.com}
+%
+%\author{John Smith}
+%\affiliation{\institution{The Th{\o}rv{\"a}ld Group}}
+%\email{jsmith@affiliation.org}
+%
+%\author{Julius P.~Kumquat}
+%\affiliation{\institution{The Kumquat Consortium}}
+%\email{jpkumquat@consortium.net}
+%
+%% The example's default list of authors is too long for headers
+%\renewcommand{\shortauthors}{B. Trovato et al.}
+
+
+\begin{abstract}  % put your abstract here!
+In this project, we designed and implemented a simulation environment for the game of Snake with multiple independent agents.
+Our approach involves developing independent AI agents to control individual snakes in the game and compete for resources (food).
+We investigate the effectiveness of different algorithms for the agents, explore the impact of different factors,
+such as the size of the environment or the number and type of agents, on their performance, and also explore the potential of
+combining multiple algorithm outputs to make decisions.
+Our expected contributions include the development of a competitive and scalable multi-agent system, as well as insights
+into the effectiveness of different algorithms and their combinations in a multi-agent setting.
+\end{abstract}
+
+
+% \keywords{AAMAS; ACM proceedings; \LaTeX; text tagging}  % put your semicolon-separated keywords here!
+
+\maketitle
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% start of main body of paper
+
+\input{report-body}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% bibliography: see CFP for number of permitted pages
+
+\bibliographystyle{ACM-Reference-Format}  % do not change this line!
+\bibliography{references}  % put name of your .bib file here
+
+\newpage
+
+\appendix
+%Appendix A
+\section{Data and Graphs}
+
+\begin{figure}
+\includegraphics[height=1.6in]{plot_basic1}
+\end{figure}
+
+\begin{figure}
+\includegraphics[height=1.6in]{plot_basic2}
+\end{figure}
+
+\begin{figure}
+\includegraphics[height=1.6in]{plot_astar2}
+\end{figure}
+
+\begin{figure}
+\includegraphics[height=1.6in]{plot_astar4}
+\end{figure}
+
+\begin{figure}
+\includegraphics[height=1.6in]{plot_astar6}
+\end{figure}
+
+\begin{figure}
+\includegraphics[height=1.6in]{plot_tcheck_nearest}
+\end{figure}
+
+\begin{figure}
+\includegraphics[height=1.6in]{plot_tcheck_comparison}
+\end{figure}
+
+
+\end{document}
