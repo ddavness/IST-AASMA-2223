@@ -122,15 +122,34 @@ scenarios = {
     "tcheck_comparison": {
         "output": "tcheck_comparison.json",
         "agents": [
+            LessDumbRandomAgent(),
+            LessDumbRandomAgent(),
+            AStarNearest(),
+            AStarNearest(),
+            AStarCautious(),
+            AStarCautious(),
             AStarNearestTailCheck(),
             AStarNearestTailCheck(),
             AStarNearestTailCheck(),
             AStarNearestTailCheck(),
+            AStarNearestTailCheck(),
+            AStarCautiousTailCheck(),
             AStarCautiousTailCheck(),
             AStarCautiousTailCheck(),
             AStarCautiousTailCheck(),
             AStarCautiousTailCheck()
         ],
-        "grid": (50, 50)
+        "grid": (36, 64)
+    },
+    "overrandom": {
+        "output": "overrandom.json",
+        "agents": [
+            LessDumbRandomAgent(),
+            LessDumbRandomAgent(),
+            LessDumbRandomAgent(),
+            LessDumbRandomAgent(),
+            LessDumbRandomAgent()
+        ],
+        "grid": (9*8, 16*8)
     }
 }
