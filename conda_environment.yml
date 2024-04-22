@@ -5,7 +5,6 @@ dependencies:
   - setuptools<=66
   - wheel<=0.38.4
   - numpy
-  - pygame
   - matplotlib
   - scipy
   - pip:

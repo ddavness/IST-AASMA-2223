@@ -6,6 +6,28 @@
 
 # Before we begin
 
+## (Recommended) using anaconda/miniconda
+
+1. Create an environment just for this project (no need to mess with dependency pinning)
+
+```
+conda env create -f conda_environment.yml
+```
+
+2. Activate the environment:
+```
+conda activate snake
+```
+
+3. Test everything is OK
+```
+python ./run.py --scenario randoms -r
+```
+
+## "Manual" Installation
+
+This may need some tinkering with dependency pinning. You're on your own here.
+
 1. (Recommended) Create virtual environment
 ```
 $ python3 -m venv venv
